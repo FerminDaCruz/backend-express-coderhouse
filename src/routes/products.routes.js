@@ -6,7 +6,7 @@ router.get("/", async (req, res) => {
         const { page = 1, limit = 10, category, avalaible, sort } = req.query;
         const query = {};
         if (category) query.category = category;
-        if (available !== undefined) query.available = available === "true";
+        if (avalaible !== undefined) query.available = available === "true";
 
         const options = {
             page: parseInt(page),
@@ -64,6 +64,7 @@ router.post("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
     try {
+        console.log(req.params);
         const product = await Product.findById(req.params.id);
         if (!product)
             return res

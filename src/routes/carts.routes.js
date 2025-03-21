@@ -1,6 +1,6 @@
 import { Router } from "express";
-import Cart from "../models/cart.model";
-import Product from "../models/product.model";
+import Cart from "../models/cart.model.js";
+import Product from "../models/product.model.js";
 const router = Router();
 
 router.post("/", async (req, res) => {
@@ -103,6 +103,19 @@ router.put("/:cid/products/:pid", async (req, res) => {
         res.status(500).json({
             error: "Error al actualizar la cantidad del producto",
         });
+    }
+});
+
+router.delete("/:cid", async (req, res) => {
+    try {
+        const cart = await Cart.findById(req.params.cid);
+        if (!cart)
+            return res.status(404).json({ error: "Carrito no encontrado" });
+        cart.products = [];
+        await cart.save();
+        res.json(cart);
+    } catch (error) {
+        res.status(500).json({ error: "Error al vaciar el carrito" });
     }
 });
 
