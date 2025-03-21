@@ -1,5 +1,4 @@
 import express from "express";
-import { promises as fs } from "fs"; // Usar fs.promises en lugar de fs
 import { engine } from "express-handlebars";
 import { Server } from "socket.io";
 import productsRouter from "./routes/products.routes.js";
@@ -7,7 +6,8 @@ import cartsRouter from "./routes/carts.routes.js";
 import viewsRouter from "./routes/views.routes.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { productsFilePath } from "./utils.js"; // Asegúrate de que esto esté definido correctamente
+import mongoose from "mongoose";
+import Product from "./models/product.model.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,28 +15,30 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 8080;
 
-// Configurar Handlebars
+const MONGO_URI =
+    "mongodb+srv://CoderUser:CoderPassword@codercluster.kzbmt.mongodb.net/?retryWrites=true&w=majority&appName=CoderCluster";
+
+mongoose
+    .connect(MONGO_URI)
+    .then(() => console.log("Conectado a MongoDB Atlas"))
+    .catch((err) => console.error("Error al conectar a MongoDB: ", err));
+
 app.engine("handlebars", engine());
 app.set("view engine", "handlebars");
 app.set("views", path.join(__dirname, "views"));
 
-// Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Rutas
 app.use("/api/products", productsRouter);
 app.use("/api/carts", cartsRouter);
 app.use("/", viewsRouter);
 
-// Servidor HTTP y WebSocket
 const httpServer = app.listen(PORT, () =>
     console.log(`Servidor corriendo en el puerto ${PORT}`)
 );
 const io = new Server(httpServer);
-
-// Compartir `io` con las rutas
 app.set("socketio", io);
 
 io.on("connection", (socket) => {
@@ -44,23 +46,16 @@ io.on("connection", (socket) => {
 
     socket.on("newProduct", async (product) => {
         try {
-            // Usar fs.promises.readFile para leer el archivo de forma asíncrona
-            const data = await fs.readFile(productsFilePath, "utf-8");
-            const products = JSON.parse(data);
-
-            const newProduct = {
-                id: (products.length + 1).toString(),
-                title: product.title,
+            const newProduct = new Product({
+                name: product.name,
                 price: product.price,
-            };
+                category: product.category,
+                available: product.available,
+            });
 
-            products.push(newProduct);
+            await newProduct.save();
 
-            // Usar fs.promises.writeFile para escribir el archivo de forma asíncrona
-            await fs.writeFile(
-                productsFilePath,
-                JSON.stringify(products, null, 2)
-            );
+            const products = await Product.find();
 
             io.emit("updateProducts", products);
         } catch (error) {

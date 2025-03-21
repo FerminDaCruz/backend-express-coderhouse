@@ -1,0 +1,27 @@
+<h1>Carrito de Compras</h1>
+
+{{#if cart.products.length}}
+    <ul>
+        {{#each cart.products}}
+            <li>
+                {{this.product.title}}
+                - ${{this.product.price}}
+                <button
+                    onclick="removeFromCart('{{this.product._id}}')"
+                >Eliminar</button>
+            </li>
+        {{/each}}
+    </ul>
+    <p>Total: ${{cart.totalPrice}}</p>
+{{else}}
+    <p>El carrito está vacío.</p>
+{{/if}}
+
+<a href="/products">Seguir comprando</a>
+
+<script>
+    function removeFromCart(productId) { fetch('/api/carts/1/products/' +
+    productId, { method: 'DELETE' }) .then(response => response.json())
+    .then(data => alert(data.message)) .catch(error => console.error('Error:',
+    error)); }
+</script>
